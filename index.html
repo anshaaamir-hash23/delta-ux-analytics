@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delta UX Analytics & Heatmap Pro</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --danger-bg: #fee2e2;
+            --danger-text: #dc2626;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Dashboard */
+        aside {
+            width: 360px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.02);
+        }
+
+        .sidebar-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-header p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .sidebar-content {
+            padding: 16px 20px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .metric-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .metric-card.full {
+            grid-column: span 2;
+        }
+
+        .metric-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 2px;
+        }
+
+        .metric-value.warning {
+            color: var(--danger-text);
+        }
+
+        .controls-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background-color: #cbd5e1;
+        }
+
+        .btn-danger {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+
+        .btn-danger:hover {
+            background-color: #fecaca;
+        }
+
+        /* Main Workspace / Mock App */
+        main {
+            flex: 1;
+            position: relative;
+            overflow-y: auto;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* Heatmap Canvas Layer */
+        #heatmap-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            display: none;
+        }
+
+        #heatmap-canvas.active {
+            display: block;
+        }
+
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            z-index: 2;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+        }
+
+        .card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .cta-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .cta-btn {
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .cta-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #f5f3ff;
+        }
+
+        .form-mock {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .form-mock input, .form-mock textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        .form-mock input:focus, .form-mock textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: #dcfce7;
+            color: #15803d;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Analytics & Controls Dashboard -->
+    <aside>
+        <div class="sidebar-header">
+            <h1>Δ Delta UX Analytics & Heatmap Pro</h1>
+            <p>Advanced Usability Telemetry</p>
+        </div>
+        <div class="sidebar-content">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Status</span>
+                <div class="status-badge">
+                    <div class="status-dot"></div>
+                    <span>Live Tracking</span>
+                </div>
+            </div>
+
+            <!-- Enhanced Dashboard Metrics Grid -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-title">Total Clicks</div>
+                    <div class="metric-value" id="click-count">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Rage Clicks</div>
+                    <div class="metric-value warning" id="rage-count">0</div>
+                </div>
+                <div class="metric-card full">
+                    <div class="metric-title">Viewport Resolution</div>
+                    <div class="metric-value" id="viewport-res" style="font-size: 1.1rem; color: var(--text-main);">0 x 0</div>
+                </div>
+            </div>
+
+            <div class="controls-group">
+                <button class="btn-primary" id="toggle-heatmap-btn">
+                    🔥 Toggle Heatmap Overlay
+                </button>
+                <button class="btn-secondary" id="export-btn">
+                    📥 Export JSON Report
+                </button>
+                <button class="btn-danger" id="clear-btn">
+                    🗑️ Reset Session Data
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Interactive Mock Webpage Container -->
+    <main id="tracking-viewport">
+        <canvas id="heatmap-canvas"></canvas>
+
+        <div class="demo-container">
+            <!-- Section 1: Hero Banner -->
+            <div class="card">
+                <span style="color: var(--primary); font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Usability Module</span>
+                <h2 style="margin-top: 8px;">Evaluate user interaction patterns seamlessly</h2>
+                <p>Click around naturally on elements, buttons, or blank space. Try clicking rapidly on one spot to trigger the **Rage Click** detector!</p>
+                <div class="cta-grid">
+                    <button class="cta-btn">Explore Features</button>
+                    <button class="cta-btn">View Analytics</button>
+                    <button class="cta-btn">Support Center</button>
+                </div>
+            </div>
+
+            <!-- Section 2: Interactive Cards -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="card">
+                    <h2>Module Alpha</h2>
+                    <p>Designed for tracking component-level user engagement flows.</p>
+                    <button class="cta-btn" style="width: 100%;">Select Alpha</button>
+                </div>
+                <div class="card">
+                    <h2>Module Beta</h2>
+                    <p>Advanced telemetry metrics highlighting friction and user hesitation.</p>
+                    <button class="cta-btn" style="width: 100%;">Select Beta</button>
+                </div>
+            </div>
+
+            <!-- Section 3: Feedback Form Mock -->
+            <div class="card">
+                <h2>Usability Feedback</h2>
+                <p>Leave your evaluation notes regarding this layout interface. Submitted reviews will display below like Play Store reviews.</p>
+                <form class="form-mock" id="feedback-form" onsubmit="event.preventDefault(); submitFeedback();">
+                    <input type="text" id="feedback-name" placeholder="Your Name" required>
+                    <textarea id="feedback-text" rows="3" placeholder="Enter comments or suggestions..." required></textarea>
+                    <button type="submit" class="btn-primary" style="width: auto; padding: 10px 20px;">Submit Review</button>
+                </form>
+            </div>
+
+            <!-- Section 4: Play Store Style Public Reviews Feed -->
+            <div class="card">
+                <h2>Community Reviews (<span id="review-count">0</span>)</h2>
+                <div id="reviews-container" style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px; max-height: 250px; overflow-y: auto;">
+                    <!-- Dynamic reviews populate here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const STORAGE_KEY = 'usability_pro_clicks_data';
+        const REVIEWS_KEY = 'usability_pro_reviews_data';
+
+        let clicks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        let reviews = JSON.parse(localStorage.getItem(REVIEWS_KEY)) || [];
+
+        let rageClicksCount = 0;
+        let lastClickTime = 0;
+        let lastClickCoords = { x: 0, y: 0 };
+
+        const viewport = document.getElementById('tracking-viewport');
+        const canvas = document.getElementById('heatmap-canvas');
+        const clickCountEl = document.getElementById('click-count');
+        const rageCountEl = document.getElementById('rage-count');
+        const viewportResEl = document.getElementById('viewport-res');
+        const toggleBtn = document.getElementById('toggle-heatmap-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const exportBtn = document.getElementById('export-btn');
+
+        let isHeatmapActive = false;
+
+        // Initialize dashboard stats & reviews feed
+        updateStats();
+        updateViewportSize();
+        renderReviews();
+        window.addEventListener('resize', updateViewportSize);
+
+        function updateViewportSize() {
+            viewportResEl.textContent = `${window.innerWidth}px × ${window.innerHeight}px`;
+        }
+
+        // Capture Clicks & Detect Rage Clicks
+        viewport.addEventListener('click', (e) => {
+            if (isHeatmapActive) return;
+
+            const rect = viewport.getBoundingClientRect();
+            const x = Math.round(e.clientX - rect.left + viewport.scrollLeft);
+            const y = Math.round(e.clientY - rect.top + viewport.scrollTop);
+            const currentTime = Date.now();
+
+            const timeDiff = currentTime - lastClickTime;
+            const distance = Math.hypot(x - lastClickCoords.x, y - lastClickCoords.y);
+
+            if (timeDiff < 400 && distance < 40) {
+                rageClicksCount++;
+            }
+
+            lastClickTime = currentTime;
+            lastClickCoords = { x, y };
+
+            const clickData = { x: x, y: y, timestamp: new Date().toISOString() };
+            clicks.push(clickData);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(clicks));
+            updateStats();
+        });
+
+        function updateStats() {
+            clickCountEl.textContent = clicks.length;
+            rageCountEl.textContent = rageClicksCount;
+        }
+
+        // Feedback Review Submission Handler
+        function submitFeedback() {
+            const nameInput = document.getElementById('feedback-name');
+            const textInput = document.getElementById('feedback-text');
+
+            const newReview = {
+                name: nameInput.value.trim(),
+                text: textInput.value.trim(),
+                timestamp: new Date().toISOString()
+            };
+
+            reviews.unshift(newReview); // Add newest to the top
+            localStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews));
+
+            nameInput.value = '';
+            textInput.value = '';
+            renderReviews();
+        }
+
+        // Render Play Store style review items
+        function renderReviews() {
+            const container = document.getElementById('reviews-container');
+            const countEl = document.getElementById('review-count');
+            countEl.textContent = reviews.length;
+
+            if (reviews.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 10px;">No reviews yet. Be the first to submit feedback!</p>';
+                return;
+            }
+
+            container.innerHTML = reviews.map(rev => `
+                <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="font-size: 0.9rem; color: var(--text-main);">${escapeHtml(rev.name)}</strong>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">${new Date(rev.timestamp).toLocaleDateString()}</span>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.4;">${escapeHtml(rev.text)}</p>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // Render Heatmap on Canvas
+        function renderHeatmap() {
+            const ctx = canvas.getContext('2d');
+            canvas.width = viewport.scrollWidth;
+            canvas.height = viewport.scrollHeight;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (clicks.length === 0) return;
+
+            clicks.forEach(point => {
+                const radius = 35;
+                const gradient = ctx.createRadialGradient(
+                    point.x, point.y, 0,
+                    point.x, point.y, radius
+                );
+
+                gradient.addColorStop(0, 'rgba(255, 0, 0, 0.6)');
+                gradient.addColorStop(0.4, 'rgba(255, 165, 0, 0.4)');
+                gradient.addColorStop(0.8, 'rgba(0, 0, 255, 0.2)');
+                gradient.addColorStop(1, 'rgba(0, 0, 255, 0)');
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Toggle Heatmap View
+        toggleBtn.addEventListener('click', () => {
+            isHeatmapActive = !isHeatmapActive;
+            if (isHeatmapActive) {
+                canvas.classList.add('active');
+                renderHeatmap();
+                toggleBtn.textContent = "👁️ Hide Heatmap Overlay";
+                toggleBtn.style.backgroundColor = "#0f172a";
+            } else {
+                canvas.classList.remove('active');
+                toggleBtn.textContent = "🔥 Toggle Heatmap Overlay";
+                toggleBtn.style.backgroundColor = "var(--primary)";
+            }
+        });
+
+        // Clear Data
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to reset all telemetry & review data?')) {
+                clicks = [];
+                reviews = [];
+                rageClicksCount = 0;
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem(REVIEWS_KEY);
+                updateStats();
+                renderReviews();
+                if (isHeatmapActive) {
+                    renderHeatmap();
+                }
+            }
+        });
+
+        // Export Data
+        exportBtn.addEventListener('click', () => {
+            const exportData = {
+                totalClicks: clicks.length,
+                rageClicks: rageClicksCount,
+                viewportResolution: `${window.innerWidth}x${window.innerHeight}`,
+                timestamp: new Date().toISOString(),
+                clickCoordinates: clicks,
+                submittedReviews: reviews
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `usability_report_${Date.now()}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        });
+    </script>
+</body>
+</html>
